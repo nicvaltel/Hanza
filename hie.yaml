@@ -1,0 +1,10 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:Hanza"
+
+    - path: "app/Main.hs"
+      component: "Hanza:exe:Hanza-exe"
+
+    - path: "test"
+      component: "Hanza:test:Hanza-test"
