@@ -2,7 +2,7 @@
 
 module RunTest where
 import Model.Economy
-import TablePrint (tableShip, tableCities)
+import Interaction.TablePrint (tableShip, tableCities)
 
 
 

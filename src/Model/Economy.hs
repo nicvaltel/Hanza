@@ -12,7 +12,7 @@ import Data.Text (Text)
 
 
 
-newtype Port = Port Text
+newtype Port = Port String
   deriving (Show, Eq)
 
 
@@ -142,8 +142,10 @@ addToCargo g q (c:cs)
 
 -- Убрать товар из груза корабля
 removeFromCargo :: Goods -> Int -> [CargoItem] -> [CargoItem]
-removeFromCargo g q = filter (\c -> not (cargoItemGoods c == g && cargoItemQuantity c <= q))
-
+removeFromCargo g q = 
+  filter (\ci -> cargoItemQuantity ci > 0) .
+  map (\ci -> if cargoItemGoods ci == g then ci{cargoItemQuantity = cargoItemQuantity ci - q} else ci )
+  
 -- Купить товар
 buyGoods :: Ship -> City -> Goods -> Int -> Either String (Ship, City)
 buyGoods ship city g q = case findMarketItem g (cityMarket city) of
@@ -244,7 +246,7 @@ prettyCargo items =
 prettyShip :: Ship -> String
 prettyShip ship =
   unlines
-    [ "🚢 Ship (" ++ show (shipType ship) ++ ")"
+    [ "Ship (" ++ show (shipType ship) ++ ")"
     , "  Location: " ++ case shipStatus ship of
         AtSea       -> "At sea"
         UnderRepair -> "Under repair"
@@ -269,7 +271,7 @@ prettyMarket (Market items) =
 prettyCity :: City -> String
 prettyCity city =
   unlines
-    [ "🏙 City: " ++ show (cityPort city)
+    [ "City: " ++ show (cityPort city)
     , "  Market:"
     , prettyMarket (cityMarket city)
     , "  Production: " ++ show (cityProduction city)

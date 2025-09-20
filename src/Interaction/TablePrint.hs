@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 
-module TablePrint where
+module Interaction.TablePrint where
 
 
 

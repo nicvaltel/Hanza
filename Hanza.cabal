@@ -13,7 +13,6 @@ author:         Author name here
 maintainer:     example@example.com
 copyright:      2025 Author name here
 license:        BSD-3-Clause
-license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
@@ -25,10 +24,11 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Interaction.Commands
+      Interaction.Console
+      Interaction.TablePrint
       Model.Economy
       RunTest
-      TablePrint
   other-modules:
       Paths_Hanza
   autogen-modules:

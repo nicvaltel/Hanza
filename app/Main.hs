@@ -1,6 +1,9 @@
 module Main (main) where
 
-import Lib
+import qualified RunTest
+import qualified Interaction.Console
 
 main :: IO ()
-main = someFunc
+main = do
+  -- RunTest.runTest4
+  Interaction.Console.main
