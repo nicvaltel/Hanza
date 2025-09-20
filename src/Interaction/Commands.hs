@@ -2,19 +2,9 @@
 
 module Interaction.Commands where
 
-import Model.Economy
 import Data.Foldable (find)
-
--- | Глобальное состояние игры
-data GameState = GameState
-  { gameShip  :: Ship
-  , gameCities :: [City]
-  } deriving (Show)
-
-
--- | Выполнить команду "купить"
--- Если успешно — возвращает обновлённое состояние.
--- Если ошибка — возвращает (ошибка, текущий город).
+import Model.Economy
+import Model.Types
 
 
 

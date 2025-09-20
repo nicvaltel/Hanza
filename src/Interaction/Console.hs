@@ -2,13 +2,15 @@
 
 module Interaction.Console where
 
-import Model.Economy
-import Interaction.Commands (GameState(..), buy, sell, goto)
+import Interaction.Commands
 import Data.IORef
 import System.IO
 import Data.Char (toLower)
 import Interaction.TablePrint (tableShip, tableCities)
+import qualified Data.Text.IO as T
 
+import Model.Economy
+import Model.Types
 
 data DisplayFormat = DisplayFormatText | DisplayFormatTable
   deriving (Eq, Ord, Show)
@@ -114,8 +116,8 @@ handleCommand ref input =
             putStrLn (prettyShip ship)
             putStrLn (prettyCities cities)
           DisplayFormatTable -> do
-            tableShip ship
-            tableCities cities
+            T.putStrLn $ tableShip ship
+            T.putStrLn $ tableCities cities
 
       quit = do
         putStrLn "Goodbye!"

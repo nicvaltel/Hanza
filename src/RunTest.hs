@@ -1,8 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module RunTest where
-import Model.Economy
 import Interaction.TablePrint (tableShip, tableCities)
+
+import Model.Types
+import Model.Economy
+import qualified Data.Text.IO as T
 
 
 
@@ -105,5 +108,5 @@ runTest4 = do
   case simulateTradeRouteNTicks 5 myShip [lubeck, hamburg] route of
     Left err -> putStrLn err
     Right (shipAfter, updatedCities) -> do
-      tableShip shipAfter
-      tableCities updatedCities
+      T.putStrLn $ tableShip shipAfter
+      T.putStrLn $ tableCities updatedCities

@@ -28,6 +28,7 @@ library
       Interaction.Console
       Interaction.TablePrint
       Model.Economy
+      Model.Types
       RunTest
   other-modules:
       Paths_Hanza

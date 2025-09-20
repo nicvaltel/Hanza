@@ -1,16 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-
 module Interaction.TablePrint where
-
-
-
 
 import Colonnade (headed, ascii)
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import Model.Economy
 import Text.Printf ( printf )
+
+import Model.Types
+
 
 -- | Table view for ship cargo
 tableCargo :: [CargoItem] -> T.Text
@@ -26,13 +23,13 @@ tableCargo items =
         ]
 
 -- | Table view for ship state
-tableShip :: Ship -> IO ()
-tableShip ship = do
-  putStrLn "=== Ship ==="
-  T.putStr $ T.pack $ ascii shipColumns [ship]
-  putStrLn "Cargo:"
-  T.putStr $ tableCargo (shipCargo ship)
-  putStrLn "\n"
+tableShip :: Ship -> T.Text
+tableShip ship =
+  "=== Ship ===\n" <>
+  T.pack (ascii shipColumns [ship]) <>
+  "Cargo:\n" <>
+  tableCargo (shipCargo ship) <>
+  "\n"
   where
     shipColumns =
       mconcat
@@ -61,14 +58,14 @@ tableMarket (Market items) = T.pack $ ascii marketColumns items
         ]
 
 -- | Table view for city state
-tableCity :: City -> IO ()
-tableCity city = do
-  putStrLn $ "=== City: " ++ show (cityPort city) ++ " ==="
-  T.putStr $ tableMarket (cityMarket city)
-  putStrLn $ "Production: "  ++ show (cityProduction city)
-  putStrLn $ "Consumption: " ++ show (cityConsumption city)
-  putStrLn "\n"
+tableCity :: City -> T.Text
+tableCity city =
+   "=== City: " <> T.pack (show $ cityPort city) <> " ===\n" <>
+   tableMarket (cityMarket city) <>
+   "Production: "  <> T.pack (show $ cityProduction city) <> "\n" <>
+   "Consumption: " <> T.pack (show $ cityConsumption city) <> "\n" <>
+    "\n"
 
 -- | Table view for multiple cities
-tableCities :: [City] -> IO ()
-tableCities = mapM_ tableCity
+tableCities :: [City] -> T.Text
+tableCities = T.concat . map tableCity
