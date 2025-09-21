@@ -1,3 +1,6 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE DataKinds #-}
 module Model.Types where
 
 
@@ -28,10 +31,22 @@ data Goods = Grain | Beer | Cloth | Salt | Iron | Fish | Honey | Wine
 
 type HullIntegrity = Int
 
-type Price = Int
+data BidAsk = Ask | Bid -- Ask (предложение) >= Bid (спрос)
+  deriving (Show, Eq)
+
+newtype Price (a :: BidAsk) = Price {unPrice :: Int}
+  deriving (Eq, Ord)
+
+instance Show (Price a) where
+  show (Price x) = show x
+
 
 -- Количество единиц товара на рынке
 type Stock = Int
+
+type Money = Int
+
+type Quantity = Int
 
 
 -- Элемент груза: товар + количество
@@ -44,7 +59,8 @@ data CargoItem = CargoItem
 -- Элемент рынка: товар + цена + запас
 data MarketItem = MarketItem
   { marketItemGoods :: Goods
-  , marketItemPrice       :: Price
+  , marketItemPriceAsk       :: Price 'Ask
+  , marketItemPriceBid       :: Price 'Bid
   , marketItemStock       :: Stock
   } deriving (Show, Eq)
 
@@ -58,8 +74,9 @@ newtype Market = Market [MarketItem]
 data City = City
   { cityPort      :: Port
   , cityMarket    :: Market
-  , cityProduction    :: [(Goods, Int)] -- производство: товар + сколько производится за тик
+  -- , cityProduction    :: [(Goods, Int)] -- производство: товар + сколько производится за тик
   , cityConsumption   :: [(Goods, Int)] -- потребление: товар + сколько тратится за тик
+  , cityProductionSchemas :: [ProductionSchema] -- производство: товар + сколько производится за тик
   } deriving (Show, Eq)
 
 
@@ -76,8 +93,17 @@ data TradeResult
   deriving (Show, Eq)
 
 
+data ProductionSchema = ProductionSchema
+  { ptProduct :: Goods -- goods that products
+  , ptQuantity :: Int -- production quantity (speed of production)
+  , ptIngridients :: [(Goods, Int)] -- (ingridient, quantity) production consume
+  }
+  deriving (Show, Eq)
+
+
 -- | Глобальное состояние игры
 data GameState = GameState
   { gameShip  :: Ship
   , gameCities :: [City]
+  , gameMoney :: Money
   } deriving (Show)

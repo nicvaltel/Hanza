@@ -53,7 +53,8 @@ tableMarket (Market items) = T.pack $ ascii marketColumns items
     marketColumns =
       mconcat
         [ headed "Goods"  (show . marketItemGoods)
-        , headed "Price"  (show . marketItemPrice)
+        , headed "Ask"  (show . marketItemPriceAsk)
+        , headed "Bid"  (show . marketItemPriceBid)
         , headed "Stock"  (show . marketItemStock)
         ]
 
@@ -62,7 +63,7 @@ tableCity :: City -> T.Text
 tableCity city =
    "=== City: " <> T.pack (show $ cityPort city) <> " ===\n" <>
    tableMarket (cityMarket city) <>
-   "Production: "  <> T.pack (show $ cityProduction city) <> "\n" <>
+  --  "Production: "  <> T.pack (show $ cityProduction city) <> "\n" <>
    "Consumption: " <> T.pack (show $ cityConsumption city) <> "\n" <>
     "\n"
 

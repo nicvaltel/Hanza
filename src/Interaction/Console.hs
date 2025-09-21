@@ -2,7 +2,7 @@
 
 module Interaction.Console where
 
-import Interaction.Commands
+import qualified Interaction.Commands  as Commands
 import Data.IORef
 import System.IO
 import Data.Char (toLower)
@@ -71,7 +71,7 @@ handleCommand ref input =
       case (parseGoods goodsStr, reads qtyStr :: [(Int, String)]) of
         (Just g, [(qty, "")]) -> do
           appSt <- readIORef ref
-          case buy g qty (appStateGame appSt) of
+          case Commands.buy g qty (appStateGame appSt) of
             Left (err, city) -> putStrLn $ "Error: " ++ err ++ "\n" ++ prettyCity city
             Right newGameState   -> do
               putStrLn "Purchase successful"
@@ -82,7 +82,7 @@ handleCommand ref input =
       case (parseGoods goodsStr, reads qtyStr :: [(Int, String)]) of
         (Just g, [(qty, "")]) -> do
           appSt <- readIORef ref
-          case sell g qty (appStateGame appSt) of
+          case Commands.sell g qty (appStateGame appSt) of
             Left (err, ship) -> putStrLn $ "Error: " ++ err ++ "\n" ++ prettyShip ship
             Right newGameState   -> do
               putStrLn "Sell successful"
@@ -93,13 +93,15 @@ handleCommand ref input =
       case parsePort portStr of
         Just port -> do
           appSt <- readIORef ref
-          case goto port (appStateGame appSt) of 
+          case Commands.goto port (appStateGame appSt) of 
             Left (err, ship) -> putStrLn $ "Error: " ++ err ++ "\n" ++ prettyShip ship
             Right newGameState-> do
               putStrLn $ "Successfully sail to " <> show port
               writeIORef ref appSt{appStateGame = newGameState} 
         _ -> putStrLn "Usage: goto <lubeck|hamburg>"
 
+    ["tick"] -> tick
+    ["t"] -> tick
 
     ["quit"] -> quit
     ["q"] -> quit
@@ -110,14 +112,22 @@ handleCommand ref input =
     where
       status = do
         appSt <- readIORef ref
-        let (GameState ship cities) = appStateGame appSt
+        let (GameState ship cities money) = appStateGame appSt
         case appStateDisplayFormat appSt of
           DisplayFormatText -> do
+            putStrLn (prettyMoney money)
             putStrLn (prettyShip ship)
             putStrLn (prettyCities cities)
           DisplayFormatTable -> do
+            putStrLn (prettyMoney money)
             T.putStrLn $ tableShip ship
             T.putStrLn $ tableCities cities
+
+      tick = do
+        appSt <- readIORef ref
+        let gs = appStateGame appSt
+        writeIORef ref appSt{appStateGame = Commands.tick gs}
+        status
 
       quit = do
         putStrLn "Goodbye!"
@@ -130,16 +140,6 @@ main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
 
-  -- Инициализация тестового состояния
-  let port1 = Port "Lubeck"
-      port2 = Port "Hamburg"
-
-      city1 = City port1 (Market [MarketItem Grain 100 50, MarketItem Beer 120 20]) [(Grain, 5)] []
-      city2 = City port2 (Market [MarketItem Grain 90 30, MarketItem Beer 200 0]) [] [(Grain, 3)]
-
-      ship0 = Ship Cog 100 10 8.0 100 [] (InPort port1)
-      initialState = AppState{appStateGame = GameState ship0 [city1, city2], appStateDisplayFormat = DisplayFormatTable}
-
   ref <- newIORef initialState
 
   putStrLn "Welcome to The Patrician 2 Economy Simulator!"
@@ -151,3 +151,17 @@ main = do
         handleCommand ref cmd
         loop
   loop
+
+
+
+-- Инициализация тестового состояния
+port1 = Port "Lubeck"
+port2 = Port "Hamburg"
+productionSchemas1 = [ProductionSchema{ptProduct = Beer, ptQuantity = 3, ptIngridients = [(Grain,4)]}] :: [ProductionSchema]
+productionSchemas2 = [ProductionSchema{ptProduct = Grain, ptQuantity = 5, ptIngridients = []}] :: [ProductionSchema]
+city1 = City port1 (Market [MarketItem Grain (Price 100) (Price 90) 50, MarketItem Beer (Price 120) (Price 100) 20]) [] productionSchemas1
+city2 = City port2 (Market [MarketItem Grain (Price 90) (Price 80) 30, MarketItem Beer (Price 200) (Price 180) 0]) [(Grain, 3)] productionSchemas2
+ship0 = Ship Cog 100 10 8.0 100 [] (InPort port1)
+initialState = AppState{appStateGame = GameState ship0 [city1, city2] 300, appStateDisplayFormat = DisplayFormatTable}
+
+simulations = T.putStrLn . tableCities . take 5 $ iterate simulateCityTick city2
