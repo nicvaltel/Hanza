@@ -58,11 +58,11 @@ updateMarketByProduction schemas (Market startItems) = Market (foldl' (flip prod
                   else
                     case lookup (marketItemGoods itm) ptIngridients of
                       Just q
-                        | q >= ptQuantity -> Just (itm{marketItemStock = marketItemStock itm - q} : acc)
+                        | marketItemStock itm >= q -> Just (itm{marketItemStock = marketItemStock itm - q} : acc)
                         | otherwise -> Nothing -- Если не хватило количества сырья, то этот продукт не производится
-                      Nothing -> maybeAcc -- = Just acc ничего не меняем
+                      Nothing -> Just(itm:acc) -- = это не продукт и не ингридиент, ничего не меняем
 
-      let maybeNewItems = foldl' productionFunc (Just []) items
+      let maybeNewItems = reverse <$> foldl' productionFunc (Just []) items
       -- если maybeNewItems == Nothing, значит не хватило количества сырья, продукт не производится, [MarketItem] не изменился
       -- если maybeNewItems == Just newItems, значит хватило количества сырья, продукт производится, [MarketItem] изменился
       fromMaybe items maybeNewItems
