@@ -11,6 +11,7 @@ import qualified Data.Text.IO as T
 
 import Model.Economy
 import Model.Types
+import Control.Monad.RWS
 
 data DisplayFormat = DisplayFormatText | DisplayFormatTable
   deriving (Eq, Ord, Show)
@@ -51,67 +52,63 @@ parsePort str =
     _ -> Nothing
 
 -- | Обрабатываем одну команду пользователя
-handleCommand :: IORef AppState -> String -> IO ()
-handleCommand ref input =
+handleCommand :: String -> App ()
+handleCommand input = do
+  appSt <- get
   case map toLower <$> words input of
     ["help"] -> do
-      putStrLn helpMsg
+      liftIO $ putStrLn helpMsg
 
     ["switch"] -> do
-      appSt <- readIORef ref
       let df = appStateDisplayFormat appSt
       let newDf = switchDisplayFormat df
-      putStrLn $ "Switch to " <> show newDf
-      writeIORef ref appSt{appStateDisplayFormat = newDf}
+      liftIO . putStrLn $ "Switch to " <> show newDf
+      put appSt{appStateDisplayFormat = newDf}
 
-    ["status"] -> status
-    ["s"] -> status
+    ["status"] -> liftIO $ status appSt
+    ["s"] -> liftIO $ status appSt
 
     ["buy", goodsStr, qtyStr] ->
       case (parseGoods goodsStr, reads qtyStr :: [(Int, String)]) of
         (Just g, [(qty, "")]) -> do
-          appSt <- readIORef ref
           case Commands.buy g qty (appStateGame appSt) of
-            Left (err, city) -> putStrLn $ "Error: " ++ err ++ "\n" ++ prettyCity city
+            Left (err, city) -> liftIO $ putStrLn $ "Error: " ++ err ++ "\n" ++ prettyCity city
             Right newGameState   -> do
-              putStrLn "Purchase successful"
-              writeIORef ref appSt{appStateGame = newGameState}
-        _ -> putStrLn "Usage: buy <goods> <quantity>"
+              liftIO $ putStrLn "Purchase successful"
+              put appSt{appStateGame = newGameState}
+        _ -> liftIO $ putStrLn "Usage: buy <goods> <quantity>"
 
     ["sell", goodsStr, qtyStr] ->
       case (parseGoods goodsStr, reads qtyStr :: [(Int, String)]) of
         (Just g, [(qty, "")]) -> do
-          appSt <- readIORef ref
           case Commands.sell g qty (appStateGame appSt) of
-            Left (err, ship) -> putStrLn $ "Error: " ++ err ++ "\n" ++ prettyShip ship
+            Left (err, ship) -> liftIO $ putStrLn $ "Error: " ++ err ++ "\n" ++ prettyShip ship
             Right newGameState   -> do
-              putStrLn "Sell successful"
-              writeIORef ref appSt{appStateGame = newGameState}
-        _ -> putStrLn "Usage: buy <goods> <quantity>"
+              liftIO $ putStrLn "Sell successful"
+              put appSt{appStateGame = newGameState}
+        _ -> liftIO $ putStrLn "Usage: buy <goods> <quantity>"
     
     ["goto", portStr] ->
       case parsePort portStr of
         Just port -> do
-          appSt <- readIORef ref
           case Commands.goto port (appStateGame appSt) of 
-            Left (err, ship) -> putStrLn $ "Error: " ++ err ++ "\n" ++ prettyShip ship
+            Left (err, ship) -> liftIO $ putStrLn $ "Error: " ++ err ++ "\n" ++ prettyShip ship
             Right newGameState-> do
-              putStrLn $ "Successfully sail to " <> show port
-              writeIORef ref appSt{appStateGame = newGameState} 
-        _ -> putStrLn "Usage: goto <lubeck|hamburg>"
+              liftIO $ putStrLn $ "Successfully sail to " <> show port
+              put appSt{appStateGame = newGameState} 
+        _ -> liftIO $ putStrLn "Usage: goto <lubeck|hamburg>"
 
-    ["tick"] -> tick
-    ["t"] -> tick
+    ["tick"] -> tick appSt 
+    ["t"] -> tick appSt
 
-    ["quit"] -> quit
-    ["q"] -> quit
-    [":q"] -> quit
+    ["quit"] -> liftIO quit
+    ["q"] -> liftIO quit
+    [":q"] -> liftIO quit
 
-    _ -> putStrLn $ "Unknown command. Available:\n" <> "Type 'status' to view current state, 'buy grain 10' to buy, 'quit' to exit, 'help' for this info."
+    _ -> liftIO $ putStrLn $ "Unknown command. Available:\n" <> "Type 'status' to view current state, 'buy grain 10' to buy, 'quit' to exit, 'help' for this info."
 
     where
-      status = do
-        appSt <- readIORef ref
+      status appSt = do
         let (GameState ship cities money) = appStateGame appSt
         case appStateDisplayFormat appSt of
           DisplayFormatText -> do
@@ -123,35 +120,41 @@ handleCommand ref input =
             T.putStrLn $ tableShip ship
             T.putStrLn $ tableCities cities
 
-      tick = do
-        appSt <- readIORef ref
+      tick :: AppState -> App ()
+      tick appSt = do
         let gs = appStateGame appSt
-        writeIORef ref appSt{appStateGame = Commands.tick gs}
-        status
+        let newAppSt = appSt{appStateGame = Commands.tick gs}
+        put newAppSt
+        liftIO $ status newAppSt
 
+      quit :: IO ()
       quit = do
         putStrLn "Goodbye!"
         -- завершаем программу
         ioError (userError "exit")
 
 
+
+type App a = RWST () () AppState IO a
+
+gameStep :: App ()
+gameStep = do
+  liftIO $ putStr "> "
+  cmd <- liftIO getLine
+  handleCommand cmd
+  gameStep
+  
+
 -- | Главная функция: простой цикл
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
 
-  ref <- newIORef initialState
-
-  putStrLn "Welcome to The Patrician 2 Economy Simulator!"
+  putStrLn "Welcome to Hanza's Wind Economy Simulator!"
   putStrLn helpMsg
 
-  let loop = do
-        putStr "> "
-        cmd <- getLine
-        handleCommand ref cmd
-        loop
-  loop
-
+  _ <- runRWST gameStep () initialState
+  pure ()
 
 
 -- Инициализация тестового состояния
